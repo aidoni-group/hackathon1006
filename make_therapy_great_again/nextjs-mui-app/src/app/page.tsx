@@ -97,7 +97,7 @@ export default function TherapyAIApp() {
           {isListening ? '🎤 LISTENING...' : '🎤 TALK TO TRUMP'}
         </button>
 
-        <button
+        {/* <button
           onClick={handleDebugMessage}
           className="px-6 py-3 rounded-full text-sm font-bold bg-yellow-600 text-white hover:bg-yellow-700 transition-all duration-200 shadow-xl"
           style={{
@@ -106,7 +106,7 @@ export default function TherapyAIApp() {
           }}
         >
           🔧 DEBUG TEST
-        </button>
+        </button> */}
       </div>
 
       {/* Hidden Speech Interface */}
