@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 Enhanced MCP Server for Therapy Great Again
-Implements session management and AI personality selection
+Implements session management, AI personality selection, and Fish TTS streaming
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
 import os
 from datetime import datetime
 import json
@@ -12,6 +13,11 @@ import logging
 from dotenv import load_dotenv
 import openai
 import uuid
+import asyncio
+import websockets
+import msgpack
+import threading
+import io
 from typing import Dict, List
 
 # Load environment variables
@@ -22,14 +28,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # OpenAI configuration
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+# Fish Audio configuration
+FISH_API_KEY = os.getenv('FISH_API_KEY')
+FISH_MODEL_KEY = os.getenv('FISH_MODEL_KEY', 'e58b0d7efca34eb38d5c4985e378abcb')
+
 # Basic server configuration
 SERVER_NAME = "Therapy Great Again MCP Server"
-SERVER_VERSION = "2.0.0"
-SERVER_DESCRIPTION = "An enhanced MCP server for therapy sessions with personality selection"
+SERVER_VERSION = "2.1.0"
+SERVER_DESCRIPTION = "An enhanced MCP server for therapy sessions with personality selection and Fish TTS"
 
 # In-memory storage for sessions
 sessions: Dict[str, Dict] = {}
@@ -127,6 +138,78 @@ def get_therapy_response(session_id: str, user_message: str):
         personality_name = sessions[session_id]["personality_name"] if session_id in sessions else "Therapist"
         return f"As {personality_name}, I understand you're sharing something important with me. While I'm having technical difficulties right now, I want you to know that your feelings are valid. Can you tell me more about what's on your mind?"
 
+async def fish_tts_generate(text: str, model_id: str = None) -> bytes:
+    """
+    Generate TTS audio using Fish Audio HTTP API
+    """
+    if not FISH_API_KEY:
+        raise Exception("Fish API key not configured")
+    
+    # Use the configured model key if no model_id is provided
+    if model_id is None:
+        model_id = FISH_MODEL_KEY
+    
+    # Prepare the request data according to Fish Audio docs
+    request_data = {
+        "text": text,
+        "reference_id": model_id,
+        "format": "mp3",
+        "normalize": True,
+        "latency": "normal"
+    }
+    
+    try:
+        import httpx
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.fish.audio/v1/tts",
+                content=msgpack.packb(request_data),
+                headers={
+                    "authorization": f"Bearer {FISH_API_KEY}",
+                    "content-type": "application/msgpack"
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Fish TTS API error: {response.status_code} - {response.text}")
+            
+            return response.content
+            
+    except Exception as e:
+        logger.error(f"Fish TTS error: {str(e)}")
+        raise
+
+async def fish_tts_stream(text: str, model_id: str = None):
+    """
+    Stream TTS audio using Fish Audio HTTP API
+    Since HTTP API doesn't stream, we'll generate the full audio and yield it in chunks
+    """
+    try:
+        audio_data = await fish_tts_generate(text, model_id)
+        
+        # Yield the audio in chunks to simulate streaming
+        chunk_size = 8192
+        for i in range(0, len(audio_data), chunk_size):
+            yield audio_data[i:i + chunk_size]
+            
+    except Exception as e:
+        logger.error(f"Fish TTS streaming error: {str(e)}")
+        raise
+
+def run_async_in_thread(coro):
+    """Helper to run async function in a thread"""
+    def run_in_thread():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+    
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(run_in_thread)
+        return future.result()
+
 @app.route('/.well-known/ai-plugin.json', methods=['GET'])
 def get_manifest():
     """MCP Protocol Endpoint 1: Returns the AI plugin manifest"""
@@ -135,7 +218,7 @@ def get_manifest():
         "name_for_model": "therapy_great_again",
         "name_for_human": SERVER_NAME,
         "description_for_model": SERVER_DESCRIPTION,
-        "description_for_human": "An enhanced therapeutic AI assistant server with personality selection",
+        "description_for_human": "An enhanced therapeutic AI assistant server with personality selection and TTS",
         "auth": {
             "type": "none"
         },
@@ -326,9 +409,146 @@ def health_check():
         "version": SERVER_VERSION,
         "timestamp": datetime.now().isoformat(),
         "openai_configured": bool(openai.api_key),
+        "fish_tts_configured": bool(FISH_API_KEY),
         "active_sessions": len(sessions),
         "available_personalities": len(PERSONALITIES)
     })
+
+@app.route('/tts/<session_id>/stream', methods=['POST'])
+def stream_tts_for_session(session_id):
+    """Stream TTS audio for a session's latest response"""
+    try:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        
+        session = sessions[session_id]
+        
+        if not session["conversation_history"]:
+            return jsonify({"error": "No conversation history found"}), 400
+        
+        # Get the latest assistant response
+        latest_response = session["conversation_history"][-1]["assistant"]
+        
+        if not FISH_API_KEY:
+            return jsonify({
+                "error": "TTS not available - Fish API key not configured"
+            }), 503
+        
+        def generate_audio_stream():
+            """Generator function to stream audio chunks"""
+            try:
+                # Use async generator in a thread
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def stream_audio():
+                    async for chunk in fish_tts_stream(latest_response, FISH_MODEL_KEY):
+                        yield chunk
+                
+                # Run the async generator
+                async_gen = stream_audio()
+                try:
+                    while True:
+                        chunk = loop.run_until_complete(async_gen.__anext__())
+                        yield chunk
+                except StopAsyncIteration:
+                    pass
+                finally:
+                    loop.close()
+                    
+            except Exception as e:
+                logger.error(f"Streaming TTS generation failed: {str(e)}")
+                # Send error as final chunk (frontend should handle this)
+                yield b''
+        
+        response = Response(
+            generate_audio_stream(),
+            mimetype='audio/mp3',
+            headers={
+                'Content-Type': 'audio/mp3',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Transfer-Encoding': 'chunked'
+            }
+        )
+        
+        logger.info(f"Started streaming TTS for session {session_id}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in streaming TTS endpoint: {str(e)}")
+        return jsonify({
+            "error": "TTS streaming failed",
+            "message": str(e)
+        }), 500
+
+@app.route('/tts/<session_id>/stream/text', methods=['POST'])
+def stream_tts_for_custom_text(session_id):
+    """Stream TTS audio for custom text with session's personality voice"""
+    try:
+        if session_id not in sessions:
+            return jsonify({"error": "Session not found"}), 404
+        
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({"error": "No text provided"}), 400
+        
+        text = data['text']
+        
+        if not FISH_API_KEY:
+            return jsonify({
+                "error": "TTS not available - Fish API key not configured"
+            }), 503
+        
+        def generate_audio_stream():
+            """Generator function to stream audio chunks"""
+            try:
+                # Use async generator in a thread
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def stream_audio():
+                    async for chunk in fish_tts_stream(text, FISH_MODEL_KEY):
+                        yield chunk
+                
+                # Run the async generator
+                async_gen = stream_audio()
+                try:
+                    while True:
+                        chunk = loop.run_until_complete(async_gen.__anext__())
+                        yield chunk
+                except StopAsyncIteration:
+                    pass
+                finally:
+                    loop.close()
+                    
+            except Exception as e:
+                logger.error(f"Streaming TTS generation failed: {str(e)}")
+                # Send error as final chunk
+                yield b''
+        
+        response = Response(
+            generate_audio_stream(),
+            mimetype='audio/mp3',
+            headers={
+                'Content-Type': 'audio/mp3',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'Transfer-Encoding': 'chunked'
+            }
+        )
+        
+        logger.info(f"Started streaming custom TTS for session {session_id}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in custom streaming TTS endpoint: {str(e)}")
+        return jsonify({
+            "error": "TTS streaming failed",
+            "message": str(e)
+        }), 500
 
 @app.route('/', methods=['GET'])
 def root():
@@ -344,10 +564,13 @@ def root():
             "list_sessions": "/sessions",
             "session_history": "/sessions/{id}/history",
             "delete_session": "/sessions/{id}",
-            "personalities": "/personalities"
+            "personalities": "/personalities",
+            "tts_stream_response": "/tts/{session_id}/stream",
+            "tts_stream_custom": "/tts/{session_id}/stream/text"
         },
         "status": "running",
         "openai_configured": bool(openai.api_key),
+        "fish_tts_configured": bool(FISH_API_KEY),
         "active_sessions": len(sessions),
         "available_personalities": list(PERSONALITIES.keys())
     })
@@ -365,6 +588,8 @@ if __name__ == '__main__':
     
     logger.info(f"Starting {SERVER_NAME} v{SERVER_VERSION}")
     logger.info(f"OpenAI API configured: {bool(openai.api_key)}")
+    logger.info(f"Fish TTS configured: {bool(FISH_API_KEY)}")
+    logger.info(f"Fish Model ID: {FISH_MODEL_KEY}")
     logger.info(f"Available personalities: {list(PERSONALITIES.keys())}")
     logger.info(f"Server will run on port {port}")
     
@@ -372,4 +597,4 @@ if __name__ == '__main__':
         host='0.0.0.0',
         port=port,
         debug=os.environ.get('DEBUG', 'False').lower() == 'true'
-    )
+    ) 

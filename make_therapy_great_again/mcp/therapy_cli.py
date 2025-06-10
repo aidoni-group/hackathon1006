@@ -19,6 +19,11 @@ from rich.layout import Layout
 from rich.live import Live
 from rich import print as rprint
 from rich.markdown import Markdown
+import subprocess
+import threading
+import tempfile
+import os
+import platform
 
 class TherapyCLI:
     def __init__(self, base_url: str = "http://localhost:3000"):
@@ -27,7 +32,96 @@ class TherapyCLI:
         self.current_session = None
         self.sessions_cache = {}
         self.personalities_cache = {}
+        self.tts_enabled = False
+        self.init_audio()
         self.load_personalities()
+    
+    def init_audio(self):
+        """Initialize audio playback system"""
+        try:
+            # Check if we have a suitable audio player
+            system = platform.system()
+            if system == "Darwin":  # macOS
+                # Check for afplay (built into macOS)
+                result = subprocess.run(["which", "afplay"], capture_output=True)
+                if result.returncode == 0:
+                    self.audio_player = "afplay"
+                    self.tts_enabled = True
+                else:
+                    raise Exception("afplay not found")
+            elif system == "Linux":
+                # Check for common Linux audio players
+                for player in ["aplay", "paplay", "mpv", "ffplay"]:
+                    result = subprocess.run(["which", player], capture_output=True)
+                    if result.returncode == 0:
+                        self.audio_player = player
+                        self.tts_enabled = True
+                        break
+                else:
+                    raise Exception("No suitable audio player found")
+            else:
+                # Windows or other systems
+                self.audio_player = None
+                self.tts_enabled = False
+                raise Exception("Audio playback not supported on this platform")
+            
+            self.console.print(f"🔊 TTS audio system initialized ({self.audio_player})", style="green")
+        except Exception as e:
+            self.console.print(f"⚠️ TTS audio unavailable: {e}", style="yellow")
+            self.tts_enabled = False
+    
+    def play_tts_audio(self, session_id: str, text: str = None):
+        """Play TTS audio for session response or custom text"""
+        if not self.tts_enabled:
+            self.console.print("⚠️ TTS not available", style="yellow")
+            return
+        
+        try:
+            if text:
+                # Generate TTS for custom text
+                response = requests.post(
+                    f"{self.base_url}/tts/{session_id}/text",
+                    json={"text": text}
+                )
+            else:
+                # Generate TTS for latest response
+                response = requests.post(f"{self.base_url}/tts/{session_id}")
+            
+            if response.status_code == 200:
+                # Save audio to temporary file and play
+                with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp_file:
+                    tmp_file.write(response.content)
+                    tmp_file.flush()
+                    
+                    def play_audio():
+                        try:
+                            # Use system audio player
+                            subprocess.run([self.audio_player, tmp_file.name], 
+                                         check=True, capture_output=True)
+                        except subprocess.CalledProcessError as e:
+                            self.console.print(f"🔊 Audio playback error: {e}", style="red")
+                        except Exception as e:
+                            self.console.print(f"🔊 Audio playback error: {e}", style="red")
+                        finally:
+                            # Clean up temp file
+                            try:
+                                os.unlink(tmp_file.name)
+                            except:
+                                pass
+                    
+                    # Play audio in background thread
+                    audio_thread = threading.Thread(target=play_audio, daemon=True)
+                    audio_thread.start()
+                    
+                    self.console.print("🔊 Playing TTS audio...", style="cyan")
+                    
+            elif response.status_code == 503:
+                self.console.print("⚠️ TTS service not configured on server", style="yellow")
+            else:
+                self.console.print(f"❌ TTS generation failed: {response.status_code}", style="red")
+                
+        except Exception as e:
+            self.console.print(f"❌ TTS error: {e}", style="red")
     
     def load_personalities(self):
         """Load available personalities from server"""
@@ -247,6 +341,17 @@ class TherapyCLI:
                         border_style="green"
                     )
                     self.console.print(ai_panel)
+                    
+                    # Ask if user wants to hear TTS
+                    if self.tts_enabled:
+                        play_audio = questionary.confirm(
+                            "🔊 Play this response as audio?",
+                            default=False
+                        ).ask()
+                        
+                        if play_audio:
+                            self.play_tts_audio(self.current_session)
+                    
                     self.console.print()
                 else:
                     self.console.print("❌ Error getting response from AI", style="red")

@@ -1,6 +1,10 @@
 Flask==2.3.3
+flask-cors==4.0.0
 python-dotenv==1.0.0
 requests==2.31.0
 openai==0.28.1
 rich==13.7.0
-questionary==2.0.1 
+questionary==2.0.1
+websockets
+msgpack
+httpx 

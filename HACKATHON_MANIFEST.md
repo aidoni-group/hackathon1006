@@ -108,6 +108,19 @@ Build an MCP-compliant server that provides therapeutic AI responses using OpenA
 
 ---
 
+### **Phase 7: CORS Support**
+**Human:** "We're getting cors errors when trying to get sessions from backend: http://localhost:3000/sessions"
+
+**AI Response:**
+- ✅ Added flask-cors dependency
+- ✅ Enabled CORS for all routes in Flask app
+- ✅ Fixed cross-origin requests from web browsers/frontends
+- ✅ Server now accessible from any frontend application
+
+**Status:** CORS Enabled ✅, Frontend-Ready ✅
+
+---
+
 ## 🚀 Current State
 
 ### **MCP Server Features:**

@@ -14,4 +14,4 @@ if ! curl -s http://localhost:3000/health > /dev/null; then
 fi
 
 # Run the CLI
-python therapy_cli.py "$@" 
+python3 therapy_cli.py "$@" 

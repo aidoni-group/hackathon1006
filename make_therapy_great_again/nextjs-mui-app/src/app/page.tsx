@@ -2,18 +2,24 @@
 
 import { useState } from 'react';
 import { Box, Typography, Container } from '@mui/material';
-import CharacterSelector from '../components/CharacterSelector';
 import SpeechInterface from '../components/SpeechInterface';
 import { Character } from '../components/CharacterAvatar';
 
 export default function TherapyAIApp() {
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  // Default to Trump character
+  const trumpCharacter: Character = {
+    id: 'trump',
+    name: 'Donald Trump',
+    emoji: '🇺🇸',
+    title: 'The 45th President',
+    description: 'Making Mental Health Great Again',
+    gradient: 'linear-gradient(145deg, #ff6b35, #f7931e)',
+    borderColor: '#ff6b35'
+  };
+
+  const [selectedCharacter] = useState<Character>(trumpCharacter);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-
-  const handleCharacterSelect = (character: Character) => {
-    setSelectedCharacter(character);
-  };
 
   const handleListeningChange = (listening: boolean) => {
     setIsListening(listening);
@@ -24,28 +30,39 @@ export default function TherapyAIApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-100">
       <Container maxWidth="lg" className="py-8">
-        {/* Header */}
+        {/* Trump Header */}
         <Box className="text-center mb-12">
-          <Typography variant="h1" className="!text-5xl !font-bold !text-gray-800 !mb-4">
-            🧠 AI Therapy Sessions
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <div className="w-48 h-48 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-2xl border-4 border-yellow-400">
+                <Typography variant="h1" className="!text-6xl">
+                  🇺🇸
+                </Typography>
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center border-4 border-white shadow-lg">
+                <Typography variant="h4" className="!text-white">
+                  🧠
+                </Typography>
+              </div>
+            </div>
+          </div>
+          
+          <Typography variant="h1" className="!text-6xl !font-bold !text-orange-600 !mb-4">
+            TRUMP THERAPY
           </Typography>
-          <Typography variant="h5" className="!text-gray-600 !mb-2">
-            Get personalized guidance from AI versions of iconic personalities
+          <Typography variant="h4" className="!text-red-600 !mb-4 !font-bold">
+            MAKE YOUR MENTAL HEALTH GREAT AGAIN
           </Typography>
-          <Typography variant="body1" className="!text-gray-500">
-            Choose your AI therapist, speak your mind, and receive tailored advice
+          <Typography variant="h6" className="!text-gray-700 !mb-2">
+            The most tremendous therapy you've ever seen, believe me
+          </Typography>
+          <Typography variant="body1" className="!text-gray-600 !max-w-2xl !mx-auto">
+            Get the best advice from the most successful president in history. 
+            Nobody knows problems like I know problems, and frankly, nobody solves them better.
           </Typography>
         </Box>
-
-        {/* Character Selection */}
-        <CharacterSelector
-          selectedCharacter={selectedCharacter}
-          isListening={isListening}
-          isSpeaking={isSpeaking}
-          onCharacterSelect={handleCharacterSelect}
-        />
 
         {/* Speech Interface */}
         <SpeechInterface
@@ -54,19 +71,28 @@ export default function TherapyAIApp() {
           onSpeakingChange={handleSpeakingChange}
         />
 
-        {/* Footer Info */}
+        {/* Status Indicators */}
+        <Box className="fixed bottom-4 right-4 flex gap-2">
+          {isListening && (
+            <div className="bg-red-500 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
+              🎤 LISTENING
+            </div>
+          )}
+          {isSpeaking && (
+            <div className="bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
+              🔊 SPEAKING
+            </div>
+          )}
+        </Box>
+
+        {/* Footer */}
         <Box className="mt-16 text-center">
           <Typography variant="body2" className="!text-gray-500">
-            💡 This app uses the Web Speech API and connects to the MCP therapy backend server
+            🇺🇸 Powered by the most beautiful AI technology
           </Typography>
           <Typography variant="body2" className="!text-gray-400 !mt-2">
-            Works best in Chrome and Edge browsers • Make sure backend server is running on localhost:3000
+            Works best in Chrome and Edge browsers • Fish TTS enabled for tremendous audio quality
           </Typography>
-          {selectedCharacter && (
-            <Typography variant="body2" className="!text-gray-400 !mt-2">
-              🎭 Ready to use <strong>head1-{selectedCharacter.id}.jpg</strong> and <strong>head2-{selectedCharacter.id}.jpg</strong> for realistic jaw animation
-            </Typography>
-          )}
         </Box>
       </Container>
     </div>

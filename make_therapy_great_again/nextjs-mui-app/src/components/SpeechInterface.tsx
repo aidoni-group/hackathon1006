@@ -17,12 +17,15 @@ import {
   DialogActions,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import {
   Mic,
   MicOff,
   VolumeUp,
+  VolumeOff,
   Send,
   History as HistoryIcon,
   Delete as DeleteIcon
@@ -105,9 +108,12 @@ export default function SpeechInterface({
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [manualInput, setManualInput] = useState('');
+  const [useFishTTS, setUseFishTTS] = useState(true);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -144,7 +150,7 @@ export default function SpeechInterface({
       };
     }
 
-    // Initialize speech synthesis
+    // Initialize speech synthesis (fallback)
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       synthRef.current = window.speechSynthesis;
     }
@@ -152,6 +158,10 @@ export default function SpeechInterface({
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
     };
   }, [onListeningChange]);
@@ -180,6 +190,98 @@ export default function SpeechInterface({
     }
   };
 
+  // Fish TTS function
+  const playWithFishTTS = async (text: string): Promise<void> => {
+    if (!currentSession) {
+      throw new Error('No active session');
+    }
+
+    setIsGeneratingAudio(true);
+    onSpeakingChange(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/tts/${currentSession}/stream/text`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`TTS request failed: ${response.status}`);
+      }
+
+      // Get the audio blob from the response
+      const audioBlob = await response.blob();
+      
+      // Create audio URL and play
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Create new audio element
+      audioRef.current = new Audio(audioUrl);
+      
+      // Set up event listeners
+      audioRef.current.onloadeddata = () => {
+        setIsGeneratingAudio(false);
+      };
+      
+      audioRef.current.onended = () => {
+        onSpeakingChange(false);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+      
+      audioRef.current.onerror = (error) => {
+        console.error('Audio playback error:', error);
+        setIsGeneratingAudio(false);
+        onSpeakingChange(false);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+
+      // Start playing
+      await audioRef.current.play();
+      
+    } catch (error) {
+      console.error('Fish TTS error:', error);
+      setIsGeneratingAudio(false);
+      onSpeakingChange(false);
+      throw error;
+    }
+  };
+
+  // Fallback browser TTS function
+  const playWithBrowserTTS = (text: string): void => {
+    if (synthRef.current) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onstart = () => onSpeakingChange(true);
+      utterance.onend = () => onSpeakingChange(false);
+      synthRef.current.speak(utterance);
+    }
+  };
+
+  // Play text using selected TTS method
+  const playText = async (text: string): Promise<void> => {
+    if (useFishTTS) {
+      try {
+        await playWithFishTTS(text);
+      } catch (error) {
+        console.error('Fish TTS failed, falling back to browser TTS:', error);
+        setError('Fish TTS failed, using browser TTS as fallback');
+        playWithBrowserTTS(text);
+      }
+    } else {
+      playWithBrowserTTS(text);
+    }
+  };
+
   const createTherapySession = async () => {
     if (!selectedCharacter) return;
 
@@ -201,20 +303,8 @@ export default function SpeechInterface({
         const data = await response.json();
         setCurrentSession(data.session_id);
         
-        // Add greeting as first message
-        setMessages([{
-          user: '',
-          assistant: data.greeting,
-          timestamp: new Date().toISOString()
-        }]);
-
-        // Speak the greeting
-        if (synthRef.current) {
-          const utterance = new SpeechSynthesisUtterance(data.greeting);
-          utterance.onstart = () => onSpeakingChange(true);
-          utterance.onend = () => onSpeakingChange(false);
-          synthRef.current.speak(utterance);
-        }
+        // Don't add greeting message or speak it - start clean
+        setMessages([]);
 
         loadSessions(); // Refresh sessions list
       } else {
@@ -263,12 +353,7 @@ export default function SpeechInterface({
         setMessages(prev => [...prev, newMessage]);
 
         // Speak the AI response
-        if (synthRef.current) {
-          const utterance = new SpeechSynthesisUtterance(data.output);
-          utterance.onstart = () => onSpeakingChange(true);
-          utterance.onend = () => onSpeakingChange(false);
-          synthRef.current.speak(utterance);
-        }
+        await playText(data.output);
 
         loadSessions(); // Refresh sessions to update message count
       } else {
@@ -298,6 +383,18 @@ export default function SpeechInterface({
       onListeningChange(true);
       setError(null);
     }
+  };
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    onSpeakingChange(false);
+    setIsGeneratingAudio(false);
   };
 
   const loadSessionHistory = async (sessionId: string) => {
@@ -347,7 +444,21 @@ export default function SpeechInterface({
           <Typography variant="h6">
             🎭 Session with {selectedCharacter.name}
           </Typography>
-          <Box className="flex gap-2">
+          <Box className="flex gap-2 items-center">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useFishTTS}
+                  onChange={(e) => setUseFishTTS(e.target.checked)}
+                  size="small"
+                />
+              }
+              label="Fish TTS"
+              style={{ margin: 0 }}
+            />
+            <IconButton onClick={stopAudio} title="Stop Audio" color="secondary">
+              <VolumeOff />
+            </IconButton>
             <IconButton onClick={() => setShowHistory(true)} title="View History">
               <HistoryIcon />
             </IconButton>
@@ -364,6 +475,18 @@ export default function SpeechInterface({
         {error && (
           <Alert severity="error" className="mb-4">
             {error}
+          </Alert>
+        )}
+
+        {/* TTS Status */}
+        {isGeneratingAudio && (
+          <Alert severity="info" className="mb-4">
+            <Box className="flex items-center gap-2">
+              <CircularProgress size={16} />
+              <Typography variant="body2">
+                Generating Fish TTS audio...
+              </Typography>
+            </Box>
           </Alert>
         )}
       </Paper>
@@ -389,9 +512,19 @@ export default function SpeechInterface({
                 )}
                 <Box className="flex justify-start">
                   <Paper className="p-3 bg-gray-100 max-w-md">
-                    <Typography variant="body2">
-                      <strong>{selectedCharacter.name}:</strong> {message.assistant}
-                    </Typography>
+                    <Box className="flex justify-between items-start">
+                      <Typography variant="body2">
+                        <strong>{selectedCharacter.name}:</strong> {message.assistant}
+                      </Typography>
+                      <IconButton 
+                        size="small" 
+                        onClick={() => playText(message.assistant)}
+                        title="Play this message"
+                        disabled={isGeneratingAudio}
+                      >
+                        <VolumeUp fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </Paper>
                 </Box>
               </Box>
