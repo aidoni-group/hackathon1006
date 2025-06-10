@@ -52,31 +52,9 @@ You must implement **two HTTP endpoints**:
 
 Returns a manifest with metadata about your tool.
 
-**Example:**
-
-```json
-{
-  "schema_version": "v1",
-  "name_for_model": "your_tool_name",
-  "name_for_human": "Your Tool",
-  "description_for_model": "Performs a cool AI function.",
-  "description_for_human": "Your tool explained for humans.",
-  "auth": { "type": "none" },
-  "api": {
-    "type": "openapi",
-    "url": "http://localhost:3000/openapi.json"
-  },
-  "contact_email": "you@example.com"
-}
-```
-
----
-
 ### 2. `/call` (POST)
 
-Accepts a JSON payload and returns a JSON result.
-
-**Input:**
+Accepts:
 
 ```json
 {
@@ -86,7 +64,7 @@ Accepts a JSON payload and returns a JSON result.
 }
 ```
 
-**Output:**
+Returns:
 
 ```json
 {
@@ -96,9 +74,7 @@ Accepts a JSON payload and returns a JSON result.
 
 ---
 
-## 🧪 Testing Your Server
-
-You can test your server with:
+## 🧪 Testing
 
 ```bash
 curl -X POST http://localhost:3000/call \
@@ -110,43 +86,34 @@ curl -X POST http://localhost:3000/call \
 
 ## 🔑 API Keys
 
-If you're using OpenAI or another API (you can use the one below)
+Store your key in a `.env`:
 
 ```bash
-OPENAI_API_KEY=<apikey>
+OPENAI_API_KEY=your-key-here
 ```
-
-**Do not hardcode secrets in your repo!**
 
 ---
 
-## 🌍 Local Hosting with ngrok (for GPT Tools)
+## 🌍 Hosting with ngrok
 
-GPT needs HTTPS! Use [ngrok](https://ngrok.com/):
+Use ngrok or pick a tool of you choice to host it
 
 ```bash
 ngrok http 3000
 ```
 
-Then test your manifest at:
+---
 
-```
-https://your-url.ngrok.io/.well-known/ai-plugin.json
-```
+## ✅ Submission Checklist
+
+- Make a PR in this repository
+- Live /call endpoint
+- Short README with what + how
 
 ---
 
-## 💡 Submission Checklist
+## Official MCP Specification & Guidess
 
-- ✅ GitHub repo or zipped code
-- ✅ Working `/call` endpoint (local or remote)
-- ✅ README with:
-  - Project description
-  - How to run it
-- ✅ (Optional) UI or video demo
-
----
+<https://modelcontextprotocol.io>
 
 ## 🎉 Good Luck
-
-Build something awesome (or ridiculous). Ask mentors for help, and remember: working > perfect.
