@@ -1,0 +1,19 @@
+
+> nextjs-mui-app@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.10.11.79:3000
+
+ ✓ Starting...
+ ✓ Ready in 704ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1516ms
+ GET / 200 in 1735ms
+ GET / 200 in 95ms
+ ✓ Compiled /favicon.ico in 445ms
+ GET /sessions 404 in 468ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 516ms
+ POST /sessions/new 404 in 42ms
+[?25h
