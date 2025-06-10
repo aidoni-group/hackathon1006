@@ -1,0 +1,152 @@
+# 🛠️ MCP Hackathon Starter Guide
+
+Welcome to the 3-Hour AI Hackathon! Your mission is to build an **AI-integrated tool** using the **Model Context Protocol (MCP)**. This README contains all the essentials to get started and submit your project.
+
+---
+
+## 🚀 Hackathon Requirements
+
+Each team must:
+
+1. ✅ **Implement an MCP-compatible server**
+2. ✅ **Use AI (e.g., GPT-4, GPT-4o, Claude, etc.)**
+3. ✅ **Demo a working /call endpoint**
+4. ✅ (Optional) Add a UI for bonus points
+
+---
+
+## 🎨 Themes
+
+Choose one of these fun starting points — or come up with your own!
+
+### 🧠 Overkill Calculator
+
+A calculator that explains every basic math problem as if it’s rocket science.  
+> "What’s 2 + 2?" → "Let’s consult Newton’s laws, ancient geometry, and existential dread."
+
+---
+
+### 🍗 Is This Chicken?
+
+Upload an image. GPT delivers a dramatic, philosophical breakdown of whether it’s chicken.  
+> "In Plato’s cave, we might all be chickens..."
+
+---
+
+### 📦 Startup in a Box
+
+Auto-generate a startup concept with AI. Prompt ideas:  
+
+- Generate name + slogan  
+- First investor pitch  
+- Product roadmap  
+- Simulate user feedback
+
+---
+
+## 🔌 MCP Protocol Specification
+
+You must implement **two HTTP endpoints**:
+
+### 1. `/.well-known/ai-plugin.json` (GET)
+
+Returns a manifest with metadata about your tool.
+
+**Example:**
+
+```json
+{
+  "schema_version": "v1",
+  "name_for_model": "your_tool_name",
+  "name_for_human": "Your Tool",
+  "description_for_model": "Performs a cool AI function.",
+  "description_for_human": "Your tool explained for humans.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "http://localhost:3000/openapi.json"
+  },
+  "contact_email": "you@example.com"
+}
+```
+
+---
+
+### 2. `/call` (POST)
+
+Accepts a JSON payload and returns a JSON result.
+
+**Input:**
+
+```json
+{
+  "inputs": {
+    "message": "Hello from the user"
+  }
+}
+```
+
+**Output:**
+
+```json
+{
+  "output": "Echo: Hello from the user"
+}
+```
+
+---
+
+## 🧪 Testing Your Server
+
+You can test your server with:
+
+```bash
+curl -X POST http://localhost:3000/call \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": {"message": "test"}}'
+```
+
+---
+
+## 🔑 API Keys
+
+If you're using OpenAI or another API (you can use the one below)
+
+```bash
+OPENAI_API_KEY=<apikey>
+```
+
+**Do not hardcode secrets in your repo!**
+
+---
+
+## 🌍 Local Hosting with ngrok (for GPT Tools)
+
+GPT needs HTTPS! Use [ngrok](https://ngrok.com/):
+
+```bash
+ngrok http 3000
+```
+
+Then test your manifest at:
+
+```
+https://your-url.ngrok.io/.well-known/ai-plugin.json
+```
+
+---
+
+## 💡 Submission Checklist
+
+- ✅ GitHub repo or zipped code
+- ✅ Working `/call` endpoint (local or remote)
+- ✅ README with:
+  - Project description
+  - How to run it
+- ✅ (Optional) UI or video demo
+
+---
+
+## 🎉 Good Luck
+
+Build something awesome (or ridiculous). Ask mentors for help, and remember: working > perfect.
