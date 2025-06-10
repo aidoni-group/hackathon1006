@@ -1,100 +1,123 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, Typography, Container } from '@mui/material';
-import SpeechInterface from '../components/SpeechInterface';
+import React, { useState, useRef } from 'react';
+import SpeechInterface, { SpeechInterfaceRef } from '../components/SpeechInterface';
 import { Character } from '../components/CharacterAvatar';
 
-export default function TherapyAIApp() {
-  // Default to Trump character
-  const trumpCharacter: Character = {
-    id: 'trump',
-    name: 'Donald Trump',
-    emoji: '🇺🇸',
-    title: 'The 45th President',
-    description: 'Making Mental Health Great Again',
-    gradient: 'linear-gradient(145deg, #ff6b35, #f7931e)',
-    borderColor: '#ff6b35'
-  };
+const TRUMP_CHARACTER: Character = {
+  id: 'trump',
+  name: 'Donald Trump',
+  emoji: '🇺🇸',
+  title: 'The 45th President',
+  description: 'Making Mental Health Great Again',
+  gradient: 'linear-gradient(145deg, #ff6b35, #f7931e)',
+  borderColor: '#ff6b35'
+};
 
-  const [selectedCharacter] = useState<Character>(trumpCharacter);
+export default function TherapyAIApp() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const speechInterfaceRef = useRef<SpeechInterfaceRef>(null);
 
-  const handleListeningChange = (listening: boolean) => {
-    setIsListening(listening);
+  const handleListeningClick = () => {
+    if (speechInterfaceRef.current) {
+      speechInterfaceRef.current.toggleListening();
+    }
   };
 
-  const handleSpeakingChange = (speaking: boolean) => {
-    setIsSpeaking(speaking);
+  const handleDebugMessage = () => {
+    if (speechInterfaceRef.current) {
+      speechInterfaceRef.current.sendDebugMessage("Hello Trump, I'm feeling stressed about work today. What advice do you have for me?");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-100">
-      <Container maxWidth="lg" className="py-8">
-        {/* Trump Header */}
-        <Box className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="w-48 h-48 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-2xl border-4 border-yellow-400">
-                <Typography variant="h1" className="!text-6xl">
-                  🇺🇸
-                </Typography>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center border-4 border-white shadow-lg">
-                <Typography variant="h4" className="!text-white">
-                  🧠
-                </Typography>
-              </div>
-            </div>
-          </div>
-          
-          <Typography variant="h1" className="!text-6xl !font-bold !text-orange-600 !mb-4">
-            TRUMP THERAPY
-          </Typography>
-          <Typography variant="h4" className="!text-red-600 !mb-4 !font-bold">
-            MAKE YOUR MENTAL HEALTH GREAT AGAIN
-          </Typography>
-          <Typography variant="h6" className="!text-gray-700 !mb-2">
-            The most tremendous therapy you've ever seen, believe me
-          </Typography>
-          <Typography variant="body1" className="!text-gray-600 !max-w-2xl !mx-auto">
-            Get the best advice from the most successful president in history. 
-            Nobody knows problems like I know problems, and frankly, nobody solves them better.
-          </Typography>
-        </Box>
+    <div className="min-h-screen bg-gradient-to-br from-red-600 via-blue-600 to-red-800 flex flex-col items-center justify-center p-8">
+      
+      {/* Simple Title */}
+      <h1 className="text-6xl font-black text-white mb-8 text-center"
+          style={{ 
+            fontFamily: 'Impact, Arial Black, sans-serif',
+            textShadow: '3px 3px 0px #000, -3px -3px 0px #000, 3px -3px 0px #000, -3px 3px 0px #000'
+          }}>
+        🇺🇸 TRUMP THERAPY 🇺🇸
+      </h1>
 
-        {/* Speech Interface */}
-        <SpeechInterface
-          selectedCharacter={selectedCharacter}
-          onListeningChange={handleListeningChange}
-          onSpeakingChange={handleSpeakingChange}
+      {/* Trump Head */}
+      <div className="relative w-96 h-96 mb-8">
+        <img 
+          src="/images/head1-trump.png" 
+          alt="Donald Trump" 
+          className={`w-full h-full object-contain transition-opacity duration-200 ${
+            isSpeaking ? 'opacity-0' : 'opacity-100'
+          }`}
+          style={{ filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.5))' }}
         />
+        <img 
+          src="/images/head2-trump.png" 
+          alt="Donald Trump Speaking" 
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
+            isSpeaking ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.5))' }}
+        />
+      </div>
 
-        {/* Status Indicators */}
-        <Box className="fixed bottom-4 right-4 flex gap-2">
-          {isListening && (
-            <div className="bg-red-500 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
-              🎤 LISTENING
-            </div>
-          )}
-          {isSpeaking && (
-            <div className="bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
-              🔊 SPEAKING
-            </div>
-          )}
-        </Box>
+      {/* Status */}
+      {isListening && (
+        <div className="bg-red-600 text-white px-8 py-4 rounded-full text-xl font-bold shadow-2xl animate-pulse mb-4"
+             style={{ textShadow: '2px 2px 0px #000' }}>
+          🎤 LISTENING...
+        </div>
+      )}
+      
+      {isSpeaking && (
+        <div className="bg-green-600 text-white px-8 py-4 rounded-full text-xl font-bold shadow-2xl animate-pulse mb-4"
+             style={{ textShadow: '2px 2px 0px #000' }}>
+          🔊 TRUMP IS SPEAKING...
+        </div>
+      )}
 
-        {/* Footer */}
-        <Box className="mt-16 text-center">
-          <Typography variant="body2" className="!text-gray-500">
-            🇺🇸 Powered by the most beautiful AI technology
-          </Typography>
-          <Typography variant="body2" className="!text-gray-400 !mt-2">
-            Works best in Chrome and Edge browsers • Fish TTS enabled for tremendous audio quality
-          </Typography>
-        </Box>
-      </Container>
+      {/* Simple Buttons */}
+      <div className="flex flex-col items-center gap-4">
+        <button
+          onClick={handleListeningClick}
+          className={`
+            px-12 py-6 rounded-full text-2xl font-bold transition-all duration-200 shadow-2xl
+            ${isListening 
+              ? 'bg-red-600 text-white animate-pulse' 
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+            }
+          `}
+          style={{
+            textShadow: '2px 2px 0px #000',
+            border: '4px solid white'
+          }}
+        >
+          {isListening ? '🎤 LISTENING...' : '🎤 TALK TO TRUMP'}
+        </button>
+
+        <button
+          onClick={handleDebugMessage}
+          className="px-6 py-3 rounded-full text-sm font-bold bg-yellow-600 text-white hover:bg-yellow-700 transition-all duration-200 shadow-xl"
+          style={{
+            textShadow: '1px 1px 0px #000',
+            border: '2px solid white'
+          }}
+        >
+          🔧 DEBUG TEST
+        </button>
+      </div>
+
+      {/* Hidden Speech Interface */}
+      <div className="hidden">
+        <SpeechInterface
+          ref={speechInterfaceRef}
+          selectedCharacter={TRUMP_CHARACTER}
+          onListeningChange={setIsListening}
+          onSpeakingChange={setIsSpeaking}
+        />
+      </div>
     </div>
   );
 }
