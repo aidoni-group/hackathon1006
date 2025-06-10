@@ -7,6 +7,9 @@ A basic MCP (Model Context Protocol) server implementation for therapeutic AI in
 - ✅ MCP Protocol compliant
 - ✅ Implements required endpoints (`/.well-known/ai-plugin.json` and `/call`)
 - ✅ OpenAI GPT-3.5 integration for therapeutic responses
+- ✅ Session management with conversation history
+- ✅ 5 unique AI personalities (Trump, Greta, Oprah, Yoda, Professional)
+- ✅ Beautiful interactive CLI interface
 - ✅ Health check endpoint
 - ✅ Comprehensive error handling
 - ✅ Logging support
@@ -30,6 +33,23 @@ python main.py
 ```
 
 The server will start on `http://localhost:3000` by default.
+
+4. **Use the Interactive CLI (Recommended):**
+```bash
+# In another terminal
+./run_cli.sh
+```
+
+## Interactive CLI Features
+
+The `therapy_cli.py` provides a beautiful terminal interface with:
+
+- 🎭 **Personality Selection**: Choose from 5 unique AI therapists
+- 💬 **Live Chat**: Real-time conversation with typing indicators
+- 📋 **Session Management**: Create, list, and delete therapy sessions  
+- 📜 **History Viewer**: View complete conversation history
+- 🏥 **Server Status**: Monitor server health and statistics
+- 🎨 **Beautiful UI**: Rich terminal interface with tables and panels
 
 ## Endpoints
 

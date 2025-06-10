@@ -75,6 +75,39 @@ Build an MCP-compliant server that provides therapeutic AI responses using OpenA
 
 ---
 
+### **Phase 5: Interactive CLI Interface**
+**Human:** "let's implement a CLI to integrate with our NEW MCP. use some standarised interactive CLI library - we want continues interaction & selection of next option etc."
+
+**AI Response:**
+- ✅ Built beautiful interactive CLI using `rich` and `questionary` libraries
+- ✅ Full-featured terminal interface with tables, panels, and styling
+- ✅ Continuous interaction with menu-driven navigation
+- ✅ All MCP server features accessible via CLI
+- ✅ Real-time conversation interface with typing indicators
+- ✅ Session management through interactive menus
+- ✅ Conversation history viewer with formatting
+- ✅ Server status monitoring
+- ✅ Error handling and graceful fallbacks
+- ✅ Command-line arguments support for custom server URLs
+
+**Status:** Beautiful Interactive CLI ✅, Complete User Experience ✅
+
+---
+
+### **Phase 6: Enhanced Satirical Personality**
+**Human:** "I have this prompt which I want to use. The response right now does not seem to be acting like the therapist at all. [provides satirical Trump therapist prompt]"
+
+**AI Response:**
+- ✅ Updated Trump personality to be satirical and meme-worthy
+- ✅ Enhanced system prompt with campaign rally therapy style
+- ✅ Added outrageous Trump-isms and exaggerations
+- ✅ Made therapy responses funny and talk-show style
+- ✅ Updated greeting to be more over-the-top and entertaining
+
+**Status:** Satirical Trump Therapist ✅, Meme-Worthy Responses ✅
+
+---
+
 ## 🚀 Current State
 
 ### **MCP Server Features:**
@@ -148,6 +181,7 @@ curl -X POST http://localhost:3000/call \
 
 ## 🔧 Quick Start
 
+**Server Setup:**
 ```bash
 cd make_therapy_great_again/mcp
 pip install -r requirements.txt
@@ -155,9 +189,17 @@ echo "OPENAI_API_KEY=your-key-here" > .env
 python main.py
 ```
 
-Test:
+**Interactive CLI (Recommended):**
 ```bash
-python test_server.py
+# In another terminal
+./run_cli.sh
+# or directly:
+python therapy_cli.py
+```
+
+**Testing:**
+```bash
+python test_enhanced_server.py
 ```
 
 ---
