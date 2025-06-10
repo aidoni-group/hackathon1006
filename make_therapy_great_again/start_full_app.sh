@@ -110,10 +110,15 @@ done
 echo ""
 echo "2. ⚛️  Starting NextJS Frontend..."
 cd "$(dirname "$0")/nextjs-mui-app" || {
-    echo "❌ Could not find NextJS directory"
+    echo "❌ Could not find NextJS directory at: $(dirname "$0")/nextjs-mui-app"
+    echo "📁 Current directory: $(pwd)"
+    echo "📂 Available directories:"
+    ls -la "$(dirname "$0")"
     cleanup
     exit 1
 }
+
+echo "📁 NextJS working directory: $(pwd)"
 
 # Install npm dependencies
 echo "📦 Installing npm dependencies..."

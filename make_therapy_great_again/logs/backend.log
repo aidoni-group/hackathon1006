@@ -1,0 +1,12 @@
+INFO:__main__:Starting Therapy Great Again MCP Server v2.0.0
+INFO:__main__:OpenAI API configured: True
+INFO:__main__:Available personalities: ['trump', 'greta', 'default', 'oprah', 'yoda']
+INFO:__main__:Server will run on port 3000
+ * Serving Flask app 'main'
+ * Debug mode: off
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:3000
+ * Running on http://192.10.11.79:3000
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug:127.0.0.1 - - [10/Jun/2025 19:45:30] "GET /health HTTP/1.1" 200 -
