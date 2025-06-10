@@ -57,16 +57,16 @@ export default function TherapyAIApp() {
         {/* Footer Info */}
         <Box className="mt-16 text-center">
           <Typography variant="body2" className="!text-gray-500">
-            💡 This app uses the Web Speech API for speech recognition and prepares data for AI therapy backend integration
+            💡 This app uses the Web Speech API and connects to the MCP therapy backend server
           </Typography>
           <Typography variant="body2" className="!text-gray-400 !mt-2">
-            Works best in Chrome and Edge browsers • 
-            {selectedCharacter && (
-              <span className="!ml-2">
-                Ready to use <strong>head1-{selectedCharacter.id}.jpg</strong> and <strong>head2-{selectedCharacter.id}.jpg</strong> for realistic jaw animation
-              </span>
-            )}
+            Works best in Chrome and Edge browsers • Make sure backend server is running on localhost:3000
           </Typography>
+          {selectedCharacter && (
+            <Typography variant="body2" className="!text-gray-400 !mt-2">
+              🎭 Ready to use <strong>head1-{selectedCharacter.id}.jpg</strong> and <strong>head2-{selectedCharacter.id}.jpg</strong> for realistic jaw animation
+            </Typography>
+          )}
         </Box>
       </Container>
     </div>
